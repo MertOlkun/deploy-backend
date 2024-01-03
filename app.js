@@ -6,7 +6,6 @@ const productRoutes = require("./routes/productRoutes");
 const Cors = require("cors");
 
 const app = express();
-const PORT = 3000;
 
 // Middleware
 app.use(Cors());
@@ -48,8 +47,8 @@ associate();
 
 // Listen to server
 sequelize.sync().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
+  app.listen(process.env.DEV_DB_PORT || 5000, () => {
+    console.log(`Server listening on port ${process.env.DEV_DB_PORT}`);
   });
 });
 
