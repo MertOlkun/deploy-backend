@@ -1,4 +1,6 @@
 // productController.js
+const { Op } = require("sequelize");
+const Sequelize = require("sequelize");
 const multer = require("multer");
 const jwt = require("jsonwebtoken");
 const fs = require("fs").promises;
@@ -165,7 +167,7 @@ const createProduct = async (req, res) => {
       );
     });
     // Başarılı bir şekilde eklendiyse, istemciye başarı mesajı gönderin
-    res.status(201).json({ message: "Ürün başarıyla eklendi" });
+    res.status(201).json({ message: `Ürün başarıyla eklendi` });
   } catch (error) {
     // Hata oluştuğunda istemciye hata mesajını gönderin
     console.error("Ürün eklenirken bir hata oluştu:", error.message);
@@ -173,81 +175,78 @@ const createProduct = async (req, res) => {
   }
 };
 
-// //! GET USER PRODUCT İŞLEMLERİ
+//! GET USER PRODUCT İŞLEMLERİ
 const getUserProduct = async (req, res) => {
   try {
-    // Token kontrolü
+    // Kullanıcının gönderdiği token'ı al
     const token = req.headers.authorization;
     if (!token) {
+      // Eğer token yoksa yetkilendirme hatası döndür
       return res
         .status(401)
         .json({ error: "Yetkilendirme başarısız. Token bulunamadı." });
     }
 
-    // Token doğrulama
+    // Token'ı doğrula ve kullanıcı ID'sini çıkar
     const decodedToken = jwt.verify(token, "jwtSecretKey123456789");
     const userId = decodedToken.userId;
 
-    // Kullanıcı kontrolü
+    // Kullanıcıyı veritabanında bul
     const user = await User.findByPk(userId);
     if (!user) {
+      // Eğer kullanıcı bulunamazsa yetkilendirme hatası döndür
       return res
         .status(401)
         .json({ error: "Yetkilendirme başarısız. Kullanıcı bulunamadı." });
     }
-    // userId ile product tablosunda kullanıcı ürünü bulmak
+
+    // Kullanıcının ürünlerini veritabanında bul
     const userProduct = await Product.findAll({
       where: { userId: userId },
     });
 
-    //
-    const userProductId = await Product.findAll({
-      attiributes: ["id"],
-      where: { userId: userId },
-    });
-    const x = userProductId.map((Product) => Product.id);
+    // Kullanıcının ürün ID'lerini bir diziye çıkar
+    const userProductIds = userProduct.map((product) => product.id);
+    // Kullanıcının ürün alt kategorilerini bir diziye çıkar
+    const userProductSubcategories = userProduct.map(
+      (product) => product.subcategory
+    );
 
-    const userSubcategoryId = await Product.findAll({
-      attributes: ["subcategory"],
-      where: { userId: userId },
-    });
-    const y = userSubcategoryId.map((Product) => Product.subcategory);
+    // Alt kategorilerden benzersiz olanları al
+    const uniqueSubcategories = [...new Set(userProductSubcategories)];
 
-    function uniqueItems(arr) {
-      const uniqueSet = new Set(arr);
-      const uniqueArray = Array.from(uniqueSet);
-      return uniqueArray;
+    // Sonuçları tutacak bir nesne oluştur
+    const result = {};
+    for (const subcategory of uniqueSubcategories) {
+      const model = sequelize.models[subcategory];
+      if (model) {
+        // Her alt kategori için ilgili modelden ürünleri bul
+        const items = await model.findAll({
+          where: { productId: { [Op.in]: userProductIds } },
+        });
+        result[subcategory] = items;
+      }
     }
-    const resultArray = uniqueItems(y);
 
-    // switch (y) {
-    //   case "car":
-    //     break;
-    //   case "motorcycle":
-    //     break;
-    //   case "home":
-    //     break;
-    //   case "land":
-    //     break;
-    //   case "phone":
-    //     break;
-    //   case "computer":
-    //     break;
-    // }
+    // userProduct ve result'u eşleşen ürün ID'leri için birleştir
+    const finalResult = userProduct.map((product) => {
+      return {
+        ...product.dataValues,
+        details: result[product.subcategory].find(
+          (detail) => detail.productId === product.id
+        ),
+      };
+    });
 
-    // const search = await y.findAll({
-    //   where: { productId: x },
-    // });
-
-    // Başarılı bir şekilde eklendiyse, istemciye başarı mesajı gönderin
-
-    res.status(201).json(t);
+    // Sonuçları istemciye gönder
+    res.status(201).json({ mergedResult: finalResult });
   } catch (error) {
-    // Hata oluştuğunda istemciye hata mesajını gönderin
-    console.error("Ürün eklenirken bir hata oluştu:", error.message);
-    res.status(500).json({ error: "Ürün eklenirken bir hata oluştu" });
+    // Hata oluştuğunda istemciye hata mesajını gönder
+    console.error("Ürün gösterilirken bir hata oluştu:", error.message);
+    res.status(500).json({ error: "Ürün gösterilirken bir hata oluştu" });
   }
 };
+
 // //! DELETE PRODUCT İŞLEMLERİ
 
 const deleteProduct = async (req, res) => {
