@@ -1,4 +1,6 @@
 // productController.js
+const express = require("express");
+const app = express();
 const { Op } = require("sequelize");
 const Sequelize = require("sequelize");
 const multer = require("multer");
@@ -15,7 +17,6 @@ const Motorcycle = require("../models/products/motorcycle");
 const Phone = require("../models/products/phone");
 const User = require("../models/user");
 const Images = require("../models/images");
-const { BOOLEAN } = require("sequelize");
 
 //! CREATE PRODUCT İŞLEMLERİ
 const storage = multer.diskStorage({
@@ -176,6 +177,9 @@ const createProduct = async (req, res) => {
 };
 
 //! GET USER PRODUCT İŞLEMLERİ
+
+app.use("/photo", express.static(path.join(__dirname, "images")));
+
 const getUserProduct = async (req, res) => {
   try {
     // Kullanıcının gönderdiği token'ı al
@@ -228,15 +232,29 @@ const getUserProduct = async (req, res) => {
       }
     }
 
-    // userProduct ve result'u eşleşen ürün ID'leri için birleştir
-    const finalResult = userProduct.map((product) => {
-      return {
-        ...product.dataValues,
-        details: result[product.subcategory].find(
-          (detail) => detail.productId === product.id
-        ),
-      };
+    const userImagesId = userProduct.map((product) => product.imageId);
+
+    const pht = await Images.findAll({
+      where: { id: { [Op.in]: userImagesId } },
     });
+
+    // userProduct ve result'u eşleşen ürün ID'leri için birleştir
+    const finalResult = userProduct
+      .filter((product) => pht.some((img) => img.id === product.imageId)) // Sadece içi dolu olanları filtrele
+      .map((product) => {
+        const matchingImage = pht.find((img) => img.id === product.imageId);
+        return {
+          ...product.dataValues,
+          img1: matchingImage ? matchingImage.img1 : null,
+          img2: matchingImage ? matchingImage.img2 : null,
+          img3: matchingImage ? matchingImage.img3 : null,
+          img4: matchingImage ? matchingImage.img4 : null,
+          img5: matchingImage ? matchingImage.img5 : null,
+          details: result[product.subcategory].find(
+            (detail) => detail.productId === product.id
+          ),
+        };
+      });
 
     // Sonuçları istemciye gönder
     res.status(201).json({ mergedResult: finalResult });

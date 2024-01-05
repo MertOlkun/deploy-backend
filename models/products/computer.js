@@ -11,7 +11,7 @@ const Computer = sequelize.define("computer", {
     allowNull: false,
   },
   ram: {
-    type: Sequelize.TINYINT,
+    type: Sequelize.INTEGER,
     allowNull: true,
   },
   gpu: {
@@ -23,7 +23,7 @@ const Computer = sequelize.define("computer", {
     allowNull: true,
   },
   memory: {
-    type: Sequelize.STRING,
+    type: Sequelize.INTEGER,
     allowNull: false,
   },
   price: {

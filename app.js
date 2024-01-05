@@ -3,9 +3,12 @@ const cookieParser = require("cookie-parser");
 const { sequelize } = require("./models");
 const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
+const path = require("path");
 const Cors = require("cors");
 
 const app = express();
+
+app.use("/photo", express.static(path.join(__dirname, "images")));
 
 // Middleware
 app.use(Cors());

@@ -94,7 +94,7 @@ async function forgotPassword(req, res) {
       from: mailConfig.mail.email,
       to: user.email,
       subject: "Şifre Sıfırlama",
-      text: `Şifrenizi sıfırlamak için bağlantı: http://localhost:3000/user/reset-password/${resetToken}`,
+      text: `Şifrenizi sıfırlamak için bağlantı: https://mysql-emporium-deploy1.onrender.com/user/reset-password/${resetToken}`,
     };
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
