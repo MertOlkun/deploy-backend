@@ -33,7 +33,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 const createProduct = async (req, res) => {
-  const images = req.files;
+  const images = req.body.file;
 
   // Dosya adlarını al
   const fileNames = images.map((file) => file.filename);
@@ -61,6 +61,30 @@ const createProduct = async (req, res) => {
     room,
     propertyType,
   } = req.body;
+
+  console.log(
+    productTitle,
+    productName,
+    model,
+    description,
+    category,
+    subcategory,
+    province,
+    district,
+    neighbourhood,
+    brand,
+    series,
+    color,
+    gear,
+    price,
+    ram,
+    gpu,
+    processor,
+    memory,
+    squareMeters,
+    room,
+    propertyType
+  );
 
   try {
     // Token kontrolü
