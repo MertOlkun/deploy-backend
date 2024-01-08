@@ -62,6 +62,8 @@ const createProduct = async (req, res) => {
     propertyType,
   } = req.body;
 
+  console.log(req.body, req.files);
+
   try {
     // Token kontrolü
     const token = req.headers.authorization;
