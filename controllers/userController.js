@@ -152,4 +152,84 @@ async function resetPassword(req, res) {
   }
 }
 
-module.exports = { registerUser, loginUser, forgotPassword, resetPassword };
+//! BURASI DELETE-USER KISMI
+const deleteUser = async (req, res) => {
+  try {
+    // Token kontrolü
+    const token = req.headers.authorization;
+    if (!token) {
+      return res
+        .status(401)
+        .json({ error: "Yetkilendirme başarısız. Token bulunamadı." });
+    }
+
+    // Token doğrulama
+    const decodedToken = jwt.verify(token, "jwtSecretKey123456789");
+    const userId = decodedToken.userId;
+
+    // Kullanıcının sahip olduğu ürünleri bul
+    const userProducts = await Product.findAll({
+      where: { userId: userId },
+    });
+
+    // const deletedProduct = await Product.findByPk(productId, {
+    //   attributes: ["imageId"],
+    //   transaction: t,
+    // });
+
+    console.log("XXXXXXXXXXXXXXXXXXXXXXXXXXXX", userProducts);
+
+    // Kullanıcının sahip olduğu ürün ID'lerini bir diziye çıkar
+    const userProductIds = userProducts.map((product) => product.id);
+
+    // Kullanıcının kendisini silmeye çalıştığı ürün ID'si
+    const productId = req.params.productId;
+
+    // Eğer kullanıcı kendi ürününü siliyorsa devam et, değilse hata döndür
+    if (!userProductIds.includes(parseInt(productId))) {
+      res.status(403).json({ error: "Ürün bulunamadı veya size ait değil." });
+      return;
+    }
+
+    // Ürün ve fotoğrafları silme işlemi
+    await sequelize.transaction(async (t) => {
+      // Diğer tablolardan ürünü sil
+      const subcategories = [
+        "images",
+        "land",
+        "home",
+        "car",
+        "motorcycle",
+        "phone",
+        "computer",
+      ];
+      for (const subcategory of subcategories) {
+        await sequelize.models[subcategory.toLowerCase()].destroy({
+          where: { productId: productId },
+          transaction: t,
+        });
+      }
+
+      // Ürünü sil
+      await Product.destroy({
+        where: { id: productId },
+        transaction: t,
+      });
+    });
+
+    // Başarılı bir şekilde silindiğinde istemciye başarı mesajı gönderin
+    res.status(200).json({ message: "Ürün başarıyla silindi" });
+  } catch (error) {
+    // Hata oluştuğunda istemciye hata mesajını gönderin
+    console.error("Ürün silinirken bir hata oluştu:", error.message);
+    res.status(500).json({ error: "Ürün silinirken bir hata oluştu" });
+  }
+};
+
+module.exports = {
+  registerUser,
+  loginUser,
+  forgotPassword,
+  resetPassword,
+  deleteUser,
+};

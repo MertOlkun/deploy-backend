@@ -11,7 +11,7 @@ router.post(
   }
 );
 
-router.delete("/:productId/:subcategory/:id", productController.deleteProduct);
+router.delete("/:subcategory/:productId", productController.deleteProduct);
 
 router.get("/getUserProduct", productController.getUserProduct);
 

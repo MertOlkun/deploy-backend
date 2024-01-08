@@ -8,8 +8,6 @@ const Cors = require("cors");
 
 const app = express();
 
-app.use("/photo", express.static(path.join(__dirname, "images")));
-
 // Middleware
 app.use(Cors());
 app.use(express.json());

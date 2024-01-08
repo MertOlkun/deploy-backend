@@ -177,8 +177,7 @@ const createProduct = async (req, res) => {
 };
 
 //! GET USER PRODUCT İŞLEMLERİ
-
-app.use("/photo", express.static(path.join(__dirname, "images")));
+// app.use(`/photo:${}`, express.static(path.join(__dirname, "images")));
 
 const getUserProduct = async (req, res) => {
   try {
@@ -238,26 +237,46 @@ const getUserProduct = async (req, res) => {
       where: { id: { [Op.in]: userImagesId } },
     });
 
-    // userProduct ve result'u eşleşen ürün ID'leri için birleştir
-    const finalResult = userProduct
-      .filter((product) => pht.some((img) => img.id === product.imageId)) // Sadece içi dolu olanları filtrele
-      .map((product) => {
-        const matchingImage = pht.find((img) => img.id === product.imageId);
-        return {
-          ...product.dataValues,
-          img1: matchingImage ? matchingImage.img1 : null,
-          img2: matchingImage ? matchingImage.img2 : null,
-          img3: matchingImage ? matchingImage.img3 : null,
-          img4: matchingImage ? matchingImage.img4 : null,
-          img5: matchingImage ? matchingImage.img5 : null,
-          details: result[product.subcategory].find(
-            (detail) => detail.productId === product.id
-          ),
+    // Resimleri nesne olarak bir değişkene atama
+    const imageMap = {};
+    pht.forEach((img) => {
+      // Eğer resimde hiçbir img değeri null değilse, yani içi dolu bir resimse
+      if (img.img1 || img.img2 || img.img3 || img.img4 || img.img5) {
+        imageMap[img.id] = {
+          img1: img.img1 || null,
+          img2: img.img2 || null,
+          img3: img.img3 || null,
+          img4: img.img4 || null,
+          img5: img.img5 || null,
         };
-      });
+      }
+    });
+
+    // const enKucuk = Math.min(...userImagesId);
+    // const enBuyuk = Math.max(...userImagesId);
+
+    // for (i = enKucuk; i < enBuyuk + 1; i++) {
+    //   for (let index = 0; index < 6; index++) {}
+    // }
+    // console.log(y);
+    // userProduct ve result'u eşleşen ürün ID'leri için birleştir
+    const finalResult = userProduct.map((product) => {
+      const matchingImage = pht.find((img) => img.id === product.imageId);
+      return {
+        ...product.dataValues,
+        img1: matchingImage ? matchingImage.img1 : null,
+        img2: matchingImage ? matchingImage.img2 : null,
+        img3: matchingImage ? matchingImage.img3 : null,
+        img4: matchingImage ? matchingImage.img4 : null,
+        img5: matchingImage ? matchingImage.img5 : null,
+        details: result[product.subcategory].find(
+          (detail) => detail.productId === product.id
+        ),
+      };
+    });
 
     // Sonuçları istemciye gönder
-    res.status(201).json({ mergedResult: finalResult });
+    res.status(201).json({ mergedResult: finalResult, photo: imageMap });
   } catch (error) {
     // Hata oluştuğunda istemciye hata mesajını gönder
     console.error("Ürün gösterilirken bir hata oluştu:", error.message);
@@ -265,68 +284,117 @@ const getUserProduct = async (req, res) => {
   }
 };
 
-// //! DELETE PRODUCT İŞLEMLERİ
+//! DELETE PRODUCT İŞLEMLERİ
 
 const deleteProduct = async (req, res) => {
   try {
-    //token kontrolü
+    // Token kontrolü
     const token = req.headers.authorization;
     if (!token) {
       return res
         .status(401)
-        .json({ error: "Yetkilendirme başarısız. token bulunamadı." });
+        .json({ error: "Yetkilendirme başarısız. Token bulunamadı." });
     }
 
-    //token doğrulama
+    // Token doğrulama
     const decodedToken = jwt.verify(token, "jwtSecretKey123456789");
     const userId = decodedToken.userId;
 
-    //Kullanıcı kontrolü
-    const user = await User.findByPk(userId);
-    if (!user) {
-      return res
-        .status(401)
-        .json({ error: "Yetkilendirme başarısız. Kullanıcı bulunamadı." });
+    // Kullanıcının ürünlerini veritabanında bul
+    const userProduct = await Product.findAll({
+      where: { userId: userId },
+    });
+
+    // Kullanıcının ürün ID'si
+    const productId = req.params.productId;
+
+    // Kullanıcının ürün ID'lerini bir diziye çıkar
+    const userProductIds = userProduct.map((product) => product.id);
+
+    // Eğer kullanıcı kendi ürününü siliyorsa devam et, değilse hata döndür
+    if (!userProductIds.includes(parseInt(productId))) {
+      res.status(403).json({ error: "Ürün bulunamadı veya size ait değil." });
+      return;
     }
-    //Ürün ve fotoğrafları silme işlemi
+
+    // Ürün ve fotoğrafları silme işlemi
     await sequelize.transaction(async (t) => {
-      const productId = req.params.productId;
+      // Product tablosundan silinen ürünün imageId değerini al
+      const deletedProduct = await Product.findByPk(productId, {
+        attributes: ["imageId"],
+        transaction: t,
+      });
+
+      const imageId = deletedProduct ? deletedProduct.imageId : null;
+
+      // Diğer tablolardan ürünü sil
+      const subcategory = req.params.subcategory;
+      await sequelize.models[subcategory.toLowerCase()].destroy({
+        where: { productId: productId },
+        transaction: t,
+      });
 
       // Ürünü sil
-      await Product.destroy({ where: { id: productId }, transaction: t });
+      await Product.destroy({
+        where: { id: productId },
+        transaction: t,
+      });
 
-      img;
+      const imageDelete = await Images.findByPk(imageId, { transaction: t });
+
+      let img1 = imageDelete ? imageDelete.dataValues.img1 : null;
+      let img2 = imageDelete ? imageDelete.dataValues.img2 : null;
+      let img3 = imageDelete ? imageDelete.dataValues.img3 : null;
+      let img4 = imageDelete ? imageDelete.dataValues.img4 : null;
+      let img5 = imageDelete ? imageDelete.dataValues.img5 : null;
+
+      // Images klasöründeki dosyaları sil
+      await Promise.all(
+        [img1, img2, img3, img4, img5]
+          .filter(Boolean)
+          .map(async (imageName) => {
+            const imagePath = path.join(__dirname, "images", imageName);
+
+            console.log(typeof imagePath);
+
+            try {
+              // İlgili dosyanın varlığını kontrol et
+              const fileExists = await fs
+                .access(imagePath)
+                .then(() => true)
+                .catch(() => false);
+
+              if (fileExists) {
+                // Dosyayı sil
+                await fs.unlink(imagePath);
+                console.log(`"${imageName}" dosyası başarıyla silindi.`);
+              }
+            } catch (error) {
+              console.error(
+                `"${imageName}" dosyasını silerken hata oluştu:`,
+                error.message
+              );
+            }
+          })
+      );
+
+      // Eğer imageId değeri varsa ve Images tablosunda bu değere sahip bir kayıt varsa sil
+      if (imageId !== null) {
+        await Images.destroy({
+          where: { id: imageId },
+          transaction: t,
+        });
+      }
     });
-  } catch {}
+
+    // Başarılı bir şekilde silindiğinde istemciye başarı mesajı gönderin
+    res.status(200).json({ message: "Ürün başarıyla silindi" });
+  } catch (error) {
+    // Hata oluştuğunda istemciye hata mesajını gönderin
+    console.error("Ürün silinirken bir hata oluştu:", error.message);
+    res.status(500).json({ error: "Ürün silinirken bir hata oluştu" });
+  }
 };
-
-//     // Ürünü ve fotoğrafları silme işlemi
-//     await sequelize.transaction(async (t) => {
-//       const productId = req.params.productId;
-
-//       // Ürünü sil
-//       await Product.destroy({ where: { id: productId }, transaction: t });
-
-//       img.destroy();
-//       // // Fotoğrafları sil
-//       // await Image.destroy({ where: { productId: productId }, transaction: t });
-
-//       // Diğer tablolardan ürünü sil
-//       const subcategory = req.params.subcategory;
-//       await sequelize.models[subcategory.toLowerCase()].destroy({
-//         where: { productId: productId },
-//         transaction: t,
-//       });
-//     });
-
-//     // Başarılı bir şekilde silindiğinde istemciye başarı mesajı gönderin
-//     res.status(200).json({ message: "Ürün başarıyla silindi" });
-//   } catch (error) {
-//     // Hata oluştuğunda istemciye hata mesajını gönderin
-//     console.error("Ürün silinirken bir hata oluştu:", error.message);
-//     res.status(500).json({ error: "Ürün silinirken bir hata oluştu" });
-//   }
-// };
 
 // Kullanımı
 // DELETE /products/:subcategory/:productId
