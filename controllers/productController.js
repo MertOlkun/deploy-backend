@@ -321,7 +321,7 @@ const deleteProduct = async (req, res) => {
 
     // Ürün ve fotoğrafları silme işlemi
     await sequelize.transaction(async (t) => {
-      // Product tablosundan silinen ürünün imageId değerini al
+      // Product tablosundan silinecek ürünün imageId değerini al
       const deletedProduct = await Product.findByPk(productId, {
         attributes: ["imageId"],
         transaction: t,
@@ -330,8 +330,10 @@ const deleteProduct = async (req, res) => {
       const imageId = deletedProduct ? deletedProduct.imageId : null;
 
       // Diğer tablolardan ürünü sil
-      const subcategory = req.params.subcategory;
-      await sequelize.models[subcategory.toLowerCase()].destroy({
+
+      const subcategory = userProduct.map((product) => product.subcategory);
+
+      await sequelize.models[subcategory].destroy({
         where: { productId: productId },
         transaction: t,
       });
@@ -355,7 +357,7 @@ const deleteProduct = async (req, res) => {
         [img1, img2, img3, img4, img5]
           .filter(Boolean)
           .map(async (imageName) => {
-            const imagePath = path.join(__dirname, "images", imageName);
+            const imagePath = path.join(__dirname, "../images", imageName);
 
             console.log(typeof imagePath);
 
@@ -399,9 +401,8 @@ const deleteProduct = async (req, res) => {
 };
 
 // Kullanımı
-// DELETE /products/:subcategory/:productId
-// Örneğin, /products/car/1
-// router.delete("/products/:subcategory/:productId", deleteProduct);
+// DELETE /products/:productId
+// router.delete("/products/:productId", deleteProduct);
 
 module.exports = {
   createProduct,

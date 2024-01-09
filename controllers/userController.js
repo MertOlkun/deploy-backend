@@ -4,7 +4,10 @@ const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 const Product = require("../models/product");
-
+const Images = require("../models/images");
+const fs = require("fs").promises;
+const path = require("path");
+const { sequelize } = require("../models/index");
 //! BURASI REGISTER BÖLÜMÜ
 async function registerUser(req, res) {
   const { username, email, phoneNumber, password, confirmPassword } = req.body;
@@ -151,6 +154,112 @@ async function resetPassword(req, res) {
     });
   }
 }
+//! BURASI GET-USER KISMI
+const getUserInfo = async (req, res) => {
+  try {
+    // Token kontrolü
+    const token = req.headers.authorization;
+    if (!token) {
+      return res
+        .status(401)
+        .json({ error: "Yetkilendirme başarısız. Token bulunamadı." });
+    }
+
+    // Token doğrulama
+    const decodedToken = jwt.verify(token, "jwtSecretKey123456789");
+    const userId = decodedToken.userId;
+
+    // Kullanıcı bilgilerini User tablosundan getir
+    const userInfo = await User.findByPk(userId);
+
+    if (!userInfo) {
+      // Kullanıcı bulunamazsa null veya boş bir nesne döndürebilirsiniz
+      return null;
+    }
+
+    // Kullanıcı bilgilerini istediğiniz şekilde düzenleyebilirsiniz
+    const UserInfo = {
+      id: userInfo.id,
+      username: userInfo.username,
+      email: userInfo.email,
+      phoneNumber: userInfo.phoneNumber,
+      createdAt: userInfo.createdAt,
+      // Diğer alanları ekleyebilirsiniz
+    };
+
+    // Başarılı bir şekilde silindiğinde istemciye başarı mesajı gönderin
+    res.status(200).json({ UserInfo });
+  } catch (error) {
+    // Hata oluştuğunda istemciye hata mesajını gönderin
+    console.error(
+      "Kullanıcı verilerini aktarma sırasında bir hata oluştu:",
+      error.message
+    );
+    res.status(500).json({
+      error: "Kullanıcı verilerini aktarma sırasında bir hata oluştu",
+    });
+  }
+};
+
+//! BURASI UPDATE-USER KISMI
+const updateUser = async (req, res) => {
+  try {
+    // Token kontrolü
+    const token = req.headers.authorization;
+    if (!token) {
+      return res
+        .status(401)
+        .json({ error: "Yetkilendirme başarısız. Token bulunamadı." });
+    }
+
+    // Token doğrulama
+    const decodedToken = jwt.verify(token, "jwtSecretKey123456789");
+    const userId = decodedToken.userId;
+
+    // Sadece izin verilen alanları seç
+    const validUpdateFields = ["username", "email", "phoneNumber"];
+    const updateData = {};
+
+    validUpdateFields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        updateData[field] = req.body[field];
+      }
+    });
+    dataValues;
+
+    // Kullanıcı bilgilerini güncelle
+    const [updatedRowCount, updatedUsers] = await User.update(updateData, {
+      where: { id: userId },
+      returning: true, // Güncellenmiş bilgileri döndür
+    });
+
+    if (updatedRowCount === 0 || !updatedUsers || updatedUsers.length === 0) {
+      return res.status(404).json({ error: "Kullanıcı bulunamadı." });
+    }
+
+    // Güncellenmiş kullanıcı bilgilerini döndür
+    const updatedUser = updatedUsers[0].dataValues;
+    const updatedUserInfoResponse = {
+      id: updatedUser.id,
+      username: updatedUser.username,
+      email: updatedUser.email,
+      phoneNumber: updatedUser.phoneNumber,
+      // Diğer alanları ekleyebilirsiniz
+    };
+
+    // Başarılı bir şekilde güncellendiğinde istemciye güncellenmiş bilgileri gönderin
+    res.status(200).json({ updatedUserInfo: updatedUserInfoResponse });
+  } catch (error) {
+    // Hata oluştuğunda istemciye hata mesajını gönderin
+    console.error(
+      "Kullanıcı bilgilerini güncelleme sırasında bir hata oluştu:",
+      error.message
+    );
+    res.status(500).json({
+      error: "Kullanıcı bilgilerini güncelleme sırasında bir hata oluştu",
+    });
+  }
+};
 
 //! BURASI DELETE-USER KISMI
 const deleteUser = async (req, res) => {
@@ -167,62 +276,107 @@ const deleteUser = async (req, res) => {
     const decodedToken = jwt.verify(token, "jwtSecretKey123456789");
     const userId = decodedToken.userId;
 
-    // Kullanıcının sahip olduğu ürünleri bul
-    const userProducts = await Product.findAll({
+    // Kullanıcının ürünlerini veritabanında bul
+    const userProduct = await Product.findAll({
       where: { userId: userId },
     });
 
-    // const deletedProduct = await Product.findByPk(productId, {
-    //   attributes: ["imageId"],
-    //   transaction: t,
-    // });
+    // Kullanıcının ürün ID'lerini bir diziye çıkar
+    const userProductIds = userProduct.map((product) => product.id);
 
-    console.log("XXXXXXXXXXXXXXXXXXXXXXXXXXXX", userProducts);
-
-    // Kullanıcının sahip olduğu ürün ID'lerini bir diziye çıkar
-    const userProductIds = userProducts.map((product) => product.id);
-
-    // Kullanıcının kendisini silmeye çalıştığı ürün ID'si
-    const productId = req.params.productId;
-
-    // Eğer kullanıcı kendi ürününü siliyorsa devam et, değilse hata döndür
-    if (!userProductIds.includes(parseInt(productId))) {
-      res.status(403).json({ error: "Ürün bulunamadı veya size ait değil." });
-      return;
-    }
+    console.log(userProductIds);
 
     // Ürün ve fotoğrafları silme işlemi
     await sequelize.transaction(async (t) => {
-      // Diğer tablolardan ürünü sil
-      const subcategories = [
-        "images",
-        "land",
-        "home",
-        "car",
-        "motorcycle",
-        "phone",
-        "computer",
-      ];
-      for (const subcategory of subcategories) {
-        await sequelize.models[subcategory.toLowerCase()].destroy({
-          where: { productId: productId },
+      for (const productId of userProductIds) {
+        // Product tablosundan silinecek ürünün imageId değerini al
+        const deletedProduct = await Product.findByPk(productId, {
+          attributes: ["imageId"],
           transaction: t,
         });
+
+        const imageId = deletedProduct ? deletedProduct.imageId : null;
+
+        // Diğer tablolardan ürünü sil
+        const subcategory = userProduct.find(
+          (product) => product.id === productId
+        )?.subcategory;
+
+        if (subcategory) {
+          await sequelize.models[subcategory].destroy({
+            where: { productId: productId },
+            transaction: t,
+          });
+        }
+
+        // Ürünü sil
+        await Product.destroy({
+          where: { id: productId },
+          transaction: t,
+        });
+
+        const imageDelete = await Images.findByPk(imageId, { transaction: t });
+
+        let img1 = imageDelete ? imageDelete.dataValues.img1 : null;
+        let img2 = imageDelete ? imageDelete.dataValues.img2 : null;
+        let img3 = imageDelete ? imageDelete.dataValues.img3 : null;
+        let img4 = imageDelete ? imageDelete.dataValues.img4 : null;
+        let img5 = imageDelete ? imageDelete.dataValues.img5 : null;
+
+        // Images klasöründeki dosyaları sil
+        await Promise.all(
+          [img1, img2, img3, img4, img5]
+            .filter(Boolean)
+            .map(async (imageName) => {
+              const imagePath = path.join(__dirname, "../images", imageName);
+
+              console.log(typeof imagePath);
+
+              try {
+                // İlgili dosyanın varlığını kontrol et
+                const fileExists = await fs
+                  .access(imagePath)
+                  .then(() => true)
+                  .catch(() => false);
+
+                if (fileExists) {
+                  // Dosyayı sil
+                  await fs.unlink(imagePath);
+                  console.log(`"${imageName}" dosyaları başarıyla silindi.`);
+                }
+              } catch (error) {
+                console.error(
+                  `"${imageName}" dosyasını silerken hata oluştu:`,
+                  error.message
+                );
+              }
+            })
+        );
+
+        // Eğer imageId değeri varsa ve Images tablosunda bu değere sahip bir kayıt varsa sil
+        if (imageId !== null) {
+          await Images.destroy({
+            where: { id: imageId },
+            transaction: t,
+          });
+        }
       }
 
-      // Ürünü sil
-      await Product.destroy({
-        where: { id: productId },
+      // Kullanıcıyı User tablosundan sil
+      await User.destroy({
+        where: { id: userId },
         transaction: t,
       });
     });
 
     // Başarılı bir şekilde silindiğinde istemciye başarı mesajı gönderin
-    res.status(200).json({ message: "Ürün başarıyla silindi" });
+    res.status(200).json({ message: "Kullanıcı başarıyla silindi" });
   } catch (error) {
     // Hata oluştuğunda istemciye hata mesajını gönderin
-    console.error("Ürün silinirken bir hata oluştu:", error.message);
-    res.status(500).json({ error: "Ürün silinirken bir hata oluştu" });
+    console.error("Kullanıcı silme sırasında bir hata oluştu:", error.message);
+    res
+      .status(500)
+      .json({ error: "Kullanıcı silme sırasında bir hata oluştu" });
   }
 };
 
@@ -232,4 +386,6 @@ module.exports = {
   forgotPassword,
   resetPassword,
   deleteUser,
+  getUserInfo,
+  updateUser,
 };
