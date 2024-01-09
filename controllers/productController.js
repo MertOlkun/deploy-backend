@@ -169,12 +169,10 @@ const createProduct = async (req, res) => {
         { transaction: t }
       );
     });
-    console.log(token);
     // Başarılı bir şekilde eklendiyse, istemciye başarı mesajı gönderin
     res.status(201).json({ message: `Ürün başarıyla eklendi` });
   } catch (error) {
     // Hata oluştuğunda istemciye hata mesajını gönderin
-    console.log(token);
     console.error("Ürün eklenirken bir hata oluştu:", error.message);
     res.status(500).json({ error: "Ürün eklenirken bir hata oluştu" });
   }
