@@ -76,7 +76,6 @@ const createProduct = async (req, res) => {
     // Token doğrulama
     const decodedToken = jwt.verify(token, "jwtSecretKey123456789");
     const userId = decodedToken.userId;
-    console.log(token);
 
     // Kullanıcı kontrolü
     const user = await User.findByPk(userId);
@@ -93,7 +92,7 @@ const createProduct = async (req, res) => {
           .status(400)
           .json({ error: "En fazla 5 fotoğraf ekleyebilirsiniz." });
       }
-
+      console.log(token);
       const imgCreate = await Images.create(
         {
           img1: fileNames[0],
@@ -121,7 +120,7 @@ const createProduct = async (req, res) => {
         },
         { transaction: t }
       );
-
+      console.log(token);
       // Diğer tablolara veri eklemek için tablo adını belirleyin
       let specificFields;
       switch (subcategory.toLowerCase()) {
@@ -163,17 +162,19 @@ const createProduct = async (req, res) => {
           specificFields = {};
           break;
       }
-
+      console.log(token);
       // İlgili tabloya yeni bir ürün ekleyin
       await sequelize.models[subcategory.toLowerCase()].create(
         { ...specificFields, productId: createdProduct.id },
         { transaction: t }
       );
     });
+    console.log(token);
     // Başarılı bir şekilde eklendiyse, istemciye başarı mesajı gönderin
     res.status(201).json({ message: `Ürün başarıyla eklendi` });
   } catch (error) {
     // Hata oluştuğunda istemciye hata mesajını gönderin
+    console.log(token);
     console.error("Ürün eklenirken bir hata oluştu:", error.message);
     res.status(500).json({ error: "Ürün eklenirken bir hata oluştu" });
   }
