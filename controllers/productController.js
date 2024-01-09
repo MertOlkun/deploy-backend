@@ -76,6 +76,7 @@ const createProduct = async (req, res) => {
     // Token doğrulama
     const decodedToken = jwt.verify(token, "jwtSecretKey123456789");
     const userId = decodedToken.userId;
+    console.log(token);
 
     // Kullanıcı kontrolü
     const user = await User.findByPk(userId);

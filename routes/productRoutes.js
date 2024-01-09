@@ -16,3 +16,12 @@ router.delete("/:subcategory/:productId", productController.deleteProduct);
 router.get("/getUserProduct", productController.getUserProduct);
 
 module.exports = router;
+
+// router.post(
+//   "/product-post",
+//   productController.upload.array("images", 5),
+//   productController.createProduct,
+//   (req, res) => {
+//     res.send("Fotoğraflar yüklendi.");
+//   }
+// );
