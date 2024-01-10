@@ -185,7 +185,6 @@ const getUserInfo = async (req, res) => {
       email: userInfo.email,
       phoneNumber: userInfo.phoneNumber,
       createdAt: userInfo.createdAt,
-      // Diğer alanları ekleyebilirsiniz
     };
 
     // Başarılı bir şekilde silindiğinde istemciye başarı mesajı gönderin
@@ -246,7 +245,6 @@ const updateUser = async (req, res) => {
       username: updatedUser.username,
       email: updatedUser.email,
       phoneNumber: updatedUser.phoneNumber,
-      // Diğer alanları ekleyebilirsiniz
     };
 
     // Başarılı bir şekilde güncellendiğinde istemciye güncellenmiş bilgileri gönderin
