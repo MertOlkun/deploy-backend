@@ -158,7 +158,7 @@ async function resetPassword(req, res) {
 const getUserInfo = async (req, res) => {
   try {
     // Token kontrolü
-    const token = req.headers.authorization;
+    let token = req.headers.authorization;
     if (!token) {
       return res
         .status(401)
@@ -166,6 +166,7 @@ const getUserInfo = async (req, res) => {
     }
 
     // Token doğrulama
+    token = token.split(" ")[1];
     const decodedToken = jwt.verify(token, "jwtSecretKey123456789");
     const userId = decodedToken.userId;
 
@@ -205,7 +206,7 @@ const getUserInfo = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     // Token kontrolü
-    const token = req.headers.authorization;
+    let token = req.headers.authorization;
     if (!token) {
       return res
         .status(401)
@@ -213,6 +214,7 @@ const updateUser = async (req, res) => {
     }
 
     // Token doğrulama
+    token = token.split(" ")[1];
     const decodedToken = jwt.verify(token, "jwtSecretKey123456789");
     const userId = decodedToken.userId;
 
@@ -265,7 +267,7 @@ const updateUser = async (req, res) => {
 const deleteUser = async (req, res) => {
   try {
     // Token kontrolü
-    const token = req.headers.authorization;
+    let token = req.headers.authorization;
     if (!token) {
       return res
         .status(401)
@@ -273,6 +275,7 @@ const deleteUser = async (req, res) => {
     }
 
     // Token doğrulama
+    token = token.split(" ")[1];
     const decodedToken = jwt.verify(token, "jwtSecretKey123456789");
     const userId = decodedToken.userId;
 

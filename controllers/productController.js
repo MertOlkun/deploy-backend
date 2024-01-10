@@ -64,9 +64,6 @@ const createProduct = async (req, res) => {
 
   console.log(req.body, req.files);
 
-  yaraq = req.headers.authorization;
-  console.log(yaraq);
-
   try {
     // Token kontrolü
     let token = req.headers.authorization;
@@ -188,7 +185,7 @@ const createProduct = async (req, res) => {
 const getUserProduct = async (req, res) => {
   try {
     // Kullanıcının gönderdiği token'ı al
-    const token = req.headers.authorization;
+    let token = req.headers.authorization;
     if (!token) {
       // Eğer token yoksa yetkilendirme hatası döndür
       return res
@@ -197,6 +194,7 @@ const getUserProduct = async (req, res) => {
     }
 
     // Token'ı doğrula ve kullanıcı ID'sini çıkar
+    token = token.split(" ")[1];
     const decodedToken = jwt.verify(token, "jwtSecretKey123456789");
     const userId = decodedToken.userId;
 
@@ -295,7 +293,7 @@ const getUserProduct = async (req, res) => {
 const deleteProduct = async (req, res) => {
   try {
     // Token kontrolü
-    const token = req.headers.authorization;
+    let token = req.headers.authorization;
     if (!token) {
       return res
         .status(401)
@@ -303,6 +301,7 @@ const deleteProduct = async (req, res) => {
     }
 
     // Token doğrulama
+    token = token.split(" ")[1];
     const decodedToken = jwt.verify(token, "jwtSecretKey123456789");
     const userId = decodedToken.userId;
 
