@@ -64,9 +64,12 @@ const createProduct = async (req, res) => {
 
   console.log(req.body, req.files);
 
+  yaraq = req.headers.authorization;
+  console.log(yaraq);
+
   try {
     // Token kontrolü
-    const token = req.headers.authorization;
+    let token = req.headers.authorization;
     if (!token) {
       return res
         .status(401)
@@ -74,6 +77,7 @@ const createProduct = async (req, res) => {
     }
 
     // Token doğrulama
+    token = token.split(" ")[1];
     const decodedToken = jwt.verify(token, "jwtSecretKey123456789");
     const userId = decodedToken.userId;
 
