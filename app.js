@@ -8,18 +8,6 @@ const Cors = require("cors");
 
 const app = express();
 
-// Middleware
-
-app.use(`/photo`, express.static(path.join(__dirname, "images")));
-// User routes
-app.use("/user", userRoutes);
-// Product routes
-app.use("/product", productRoutes);
-
-app.use(Cors());
-app.use(express.json());
-app.use(cookieParser());
-
 //! Tabloları veritabanına aktaralım.
 const User = require("./models/user");
 const Car = require("./models/products/car");
@@ -59,3 +47,14 @@ sequelize.sync().then(() => {
     console.log(`Server listening on port ${process.env.DEV_DB_PORT}`);
   });
 });
+
+// Middleware
+app.use(Cors());
+app.use(express.json());
+app.use(cookieParser());
+
+app.use(`/photo`, express.static(path.join(__dirname, "images")));
+// User routes
+app.use("/user", userRoutes);
+// Product routes
+app.use("/product", productRoutes);
