@@ -10,11 +10,7 @@ const app = express();
 
 // Middleware
 
-app.use(
-  `/photo`,
-  productRoutes,
-  express.static(path.join(__dirname, "images"))
-);
+app.use(`/photo`, express.static(path.join(__dirname, "images")));
 // User routes
 app.use("/user", userRoutes);
 // Product routes
