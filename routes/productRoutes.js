@@ -13,7 +13,7 @@ router.post(
 
 router.delete("/:productId", productController.deleteProduct);
 
-router.get("/getUserProduct", productController.getUserProduct);
+router.get("/getUserProduct/:photo", productController.getUserProduct);
 
 router.get("/getAllProduct", productController.getAllProducts);
 

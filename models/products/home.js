@@ -7,7 +7,7 @@ const Home = sequelize.define("home", {
     allowNull: false,
   },
   room: {
-    type: Sequelize.INTEGER,
+    type: Sequelize.STRING,
     allowNull: false,
   },
   propertyType: {
