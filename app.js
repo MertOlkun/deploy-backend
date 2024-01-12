@@ -8,7 +8,7 @@ const Cors = require("cors");
 
 const app = express();
 
-//! Tabloları veritabanına aktaralım.
+// Transfer the tables to the database.
 const User = require("./models/user");
 const Car = require("./models/products/car");
 const Motorcycle = require("./models/products/motorcycle");
@@ -19,8 +19,7 @@ const Land = require("./models/products/land");
 const Product = require("./models/product");
 const Images = require("./models/images");
 
-//! Tablolar arası ilişkileri yapalım
-
+// Create relationships between tables.
 function associate() {
   Car.belongsTo(Product);
   Motorcycle.belongsTo(Product);
@@ -53,6 +52,7 @@ app.use(Cors());
 app.use(express.json());
 app.use(cookieParser());
 
+// Static images folder
 app.use(`/photo`, express.static(path.join(__dirname, "images")));
 // User routes
 app.use("/user", userRoutes);

@@ -208,6 +208,23 @@ const getUserProduct = async (req, res) => {
       where: { userId: userId },
     });
 
+    // Retrieve user information from the User table
+    const userInfo = await User.findByPk(userId);
+
+    if (!userInfo) {
+      // Return null or an empty object if the user is not found
+      return null;
+    }
+
+    // You can format the user information as desired
+    const UserInfo = {
+      id: userInfo.id,
+      username: userInfo.username,
+      email: userInfo.email,
+      phoneNumber: userInfo.phoneNumber,
+      createdAt: userInfo.createdAt,
+    };
+
     // Extract the product IDs of the user's products into an array
     const userProductIds = userProduct.map((product) => product.id);
 
@@ -271,7 +288,7 @@ const getUserProduct = async (req, res) => {
     });
 
     // Send the results to the client
-    res.status(201).json({ mergedResult: finalResult });
+    res.status(201).json({ mergedResult: finalResult, UserInfo });
   } catch (error) {
     // If an error occurs, send an error message to the client
     console.error(
@@ -293,6 +310,31 @@ const getAllProducts = async (req, res) => {
 
     // Tüm ürünlerin ID'lerini bir diziye çıkar
     const allProductIds = allProducts.map((product) => product.id);
+
+    // userId'leri depolamak için boş bir dizi oluşturun
+    const userIds = [];
+
+    // Her bir ürünün içinde dolaşarak userId'leri toplayın
+    allProducts.forEach((product) => {
+      const userId = product.dataValues.userId;
+      userIds.push(userId);
+    });
+
+    // User tablosundan kullanıcı bilgilerini al
+    const userInfo = await User.findAll({
+      where: { id: { [Op.in]: userIds } },
+    });
+
+    // Varsayılan olarak userIds ve userInfo'nin aynı sıraya sahip olduğunu düşünüyoruz
+    const userInfoMap = {};
+    userInfo.forEach((user) => {
+      userInfoMap[user.id] = {
+        id: user.id,
+        username: user.username,
+        phoneNumber: user.phoneNumber,
+        createdAt: user.createdAt,
+      };
+    });
 
     // Tüm ürün alt kategorilerini bir diziye çıkar
     const allProductSubcategories = allProducts.map(
@@ -323,20 +365,6 @@ const getAllProducts = async (req, res) => {
       where: { id: { [Op.in]: allImagesId } },
     });
 
-    // Resimleri nesne olarak bir değişkene atama
-    const imageMap = {};
-    allImages.forEach((img) => {
-      if (img.img1 || img.img2 || img.img3 || img.img4 || img.img5) {
-        imageMap[img.id] = {
-          img1: img.img1 || null,
-          img2: img.img2 || null,
-          img3: img.img3 || null,
-          img4: img.img4 || null,
-          img5: img.img5 || null,
-        };
-      }
-    });
-
     // Tüm ürünler ve result'u eşleşen ürün ID'leri için birleştir
     const finalResult = allProducts.map((product) => {
       const matchingImage = allImages.find((img) => img.id === product.imageId);
@@ -354,10 +382,103 @@ const getAllProducts = async (req, res) => {
     });
 
     // Sonuçları istemciye gönder
-    res.status(200).json({ allProducts: finalResult, allImages: imageMap });
+    res.status(200).json({ allProducts: finalResult, userInfoMap });
   } catch (error) {
     console.error("Tüm ürünler getirilirken bir hata oluştu:", error.message);
     res.status(500).json({ error: "Tüm ürünler getirilirken bir hata oluştu" });
+  }
+};
+
+//! UPDATE PRODUCT OPERATIONS
+
+const updateProductInfo = async (
+  req,
+  res,
+  productId,
+  updatedData,
+  newImages,
+  subcategory
+) => {
+  try {
+    // Token validation
+    let token = req.headers.authorization;
+    if (!token) {
+      return res
+        .status(401)
+        .json({ error: "Authorization failed. Token not found." });
+    }
+
+    // Verify the token
+    token = token.split(" ")[1];
+    const decodedToken = jwt.verify(token, "jwtSecretKey123456789");
+    const userId = decodedToken.userId;
+
+    // User validation
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res
+        .status(401)
+        .json({ error: "Authorization failed. User not found." });
+    }
+
+    // Start the transaction
+    await sequelize.transaction(async (t) => {
+      // Update the product information
+      await Product.update(updatedData, {
+        where: { id: productId },
+        transaction: t,
+      });
+
+      // Get the current image names associated with the product
+      const currentImages = await Images.findByPk(productId);
+
+      // Delete the old images from the 'images/' directory
+      Object.values(currentImages.dataValues).forEach(async (image) => {
+        if (image) {
+          const imagePath = path.join("images/", image);
+          if (fs.existsSync(imagePath)) {
+            await fs.promises.unlink(imagePath);
+          }
+        }
+      });
+
+      // Create a new entry in the 'Images' table for the updated images
+      const imgCreate = await Images.create(
+        {
+          img1: newImages[0],
+          img2: newImages[1],
+          img3: newImages[2],
+          img4: newImages[3],
+          img5: newImages[4],
+        },
+        { transaction: t }
+      );
+
+      // Update the product's imageId to the new entry in the 'Images' table
+      await Product.update(
+        { imageId: imgCreate.id },
+        { where: { id: productId }, transaction: t }
+      );
+
+      // Update specific fields in the relevant table
+      await sequelize.models[subcategory.toLowerCase()].update(
+        { ...updatedData, imageId: imgCreate.id }, // Update the relevant fields
+        { where: { productId }, transaction: t }
+      );
+    });
+
+    console.log("Product information and images updated successfully");
+    res
+      .status(200)
+      .json({ message: "Product information and images updated successfully" });
+  } catch (error) {
+    console.error(
+      "An error occurred while updating product information:",
+      error.message
+    );
+    res
+      .status(500)
+      .json({ error: "An error occurred while updating product information" });
   }
 };
 
@@ -486,4 +607,5 @@ module.exports = {
   upload,
   deleteProduct,
   getAllProducts,
+  updateProductInfo,
 };

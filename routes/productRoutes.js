@@ -17,4 +17,5 @@ router.get("/getUserProduct", productController.getUserProduct);
 
 router.get("/getAllProduct", productController.getAllProducts);
 
+router.put("/updateUserProduct", productController.updateProductInfo);
 module.exports = router;

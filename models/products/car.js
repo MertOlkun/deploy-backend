@@ -19,7 +19,7 @@ const Car = sequelize.define("car", {
     allowNull: false,
   },
   price: {
-    type: Sequelize.INTEGER,
+    type: Sequelize.STRING,
     allowNull: false,
   },
 });

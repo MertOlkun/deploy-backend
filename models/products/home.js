@@ -15,7 +15,7 @@ const Home = sequelize.define("home", {
     allowNull: true,
   },
   price: {
-    type: Sequelize.INTEGER,
+    type: Sequelize.STRING,
     allowNull: false,
   },
 });
