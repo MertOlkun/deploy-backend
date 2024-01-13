@@ -11,7 +11,7 @@ const Land = sequelize.define("land", {
     allowNull: false,
   },
   price: {
-    type: Sequelize.INTEGER,
+    type: Sequelize.STRING,
     allowNull: false,
   },
 });

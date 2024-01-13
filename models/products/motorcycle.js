@@ -19,7 +19,7 @@ const Motorcycle = sequelize.define("motorcycle", {
     allowNull: false,
   },
   price: {
-    type: Sequelize.INTEGER,
+    type: Sequelize.STRING,
     allowNull: false,
   },
 });

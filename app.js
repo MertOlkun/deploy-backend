@@ -18,6 +18,7 @@ const Home = require("./models/products/home");
 const Land = require("./models/products/land");
 const Product = require("./models/product");
 const Images = require("./models/images");
+const Favorite = require("./models/favorite");
 
 // Create relationships between tables.
 function associate() {
@@ -35,7 +36,10 @@ function associate() {
   Product.hasOne(Home);
   Product.hasOne(Land);
 
+  Favorite.hasOne(User);
   User.hasMany(Product);
+  User.hasMany(Favorite);
+  Product.hasMany(Favorite);
   Images.hasMany(Product);
 }
 associate();

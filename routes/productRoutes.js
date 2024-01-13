@@ -17,5 +17,14 @@ router.get("/getUserProduct", productController.getUserProduct);
 
 router.get("/getAllProduct", productController.getAllProducts);
 
-router.put("/updateUserProduct", productController.updateProductInfo);
+router.get("/favorite/:productId", productController.addFavorite);
+
+// router.put(
+//   "/updateProduct/:productId",
+//   productController.upload.array("images", 5),
+//   productController.updateProductInfo,
+//   (req, res) => {
+//     res.send("Fotoğraflar yüklendi.");
+//   }
+// );
 module.exports = router;

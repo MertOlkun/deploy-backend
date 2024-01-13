@@ -17,6 +17,7 @@ const Motorcycle = require("../models/products/motorcycle");
 const Phone = require("../models/products/phone");
 const User = require("../models/user");
 const Images = require("../models/images");
+const Favorite = require("../models/favorite");
 
 //! CREATE PRODUCT OPERATIONS
 const storage = multer.diskStorage({
@@ -391,96 +392,179 @@ const getAllProducts = async (req, res) => {
 
 //! UPDATE PRODUCT OPERATIONS
 
-const updateProductInfo = async (
-  req,
-  res,
-  productId,
-  updatedData,
-  newImages,
-  subcategory
-) => {
-  try {
-    // Token validation
-    let token = req.headers.authorization;
-    if (!token) {
-      return res
-        .status(401)
-        .json({ error: "Authorization failed. Token not found." });
-    }
+// const updateProductInfo = async (req, res) => {
+//   try {
+//     // Token validation
+//     let token = req.headers.authorization;
+//     if (!token) {
+//       return res.status(401).json({
+//         success: false,
+//         error: "Authorization failed. Token not found.",
+//       });
+//     }
 
-    // Verify the token
-    token = token.split(" ")[1];
-    const decodedToken = jwt.verify(token, "jwtSecretKey123456789");
-    const userId = decodedToken.userId;
+//     // Verify the token
+//     token = token.split(" ")[1];
+//     const decodedToken = jwt.verify(token, "jwtSecretKey123456789");
+//     const userId = decodedToken.userId;
 
-    // User validation
-    const user = await User.findByPk(userId);
-    if (!user) {
-      return res
-        .status(401)
-        .json({ error: "Authorization failed. User not found." });
-    }
+//     // User validation
+//     const user = await User.findByPk(userId);
+//     if (!user) {
+//       return res.status(401).json({
+//         success: false,
+//         error: "Authorization failed. User not found.",
+//       });
+//     }
 
-    // Start the transaction
-    await sequelize.transaction(async (t) => {
-      // Update the product information
-      await Product.update(updatedData, {
-        where: { id: productId },
-        transaction: t,
-      });
+//     // Update product information in the database
+//     const productId = parseInt(req.params.productId);
+//     const updatedData = req.body;
 
-      // Get the current image names associated with the product
-      const currentImages = await Images.findByPk(productId);
+//     const newImages = req.files;
 
-      // Delete the old images from the 'images/' directory
-      Object.values(currentImages.dataValues).forEach(async (image) => {
-        if (image) {
-          const imagePath = path.join("images/", image);
-          if (fs.existsSync(imagePath)) {
-            await fs.promises.unlink(imagePath);
-          }
-        }
-      });
+//     const product = await Product.findByPk(productId);
 
-      // Create a new entry in the 'Images' table for the updated images
-      const imgCreate = await Images.create(
-        {
-          img1: newImages[0],
-          img2: newImages[1],
-          img3: newImages[2],
-          img4: newImages[3],
-          img5: newImages[4],
-        },
-        { transaction: t }
-      );
+//     if (!product) {
+//       return res
+//         .status(404)
+//         .json({ success: false, error: "Product not found" });
+//     }
 
-      // Update the product's imageId to the new entry in the 'Images' table
-      await Product.update(
-        { imageId: imgCreate.id },
-        { where: { id: productId }, transaction: t }
-      );
+//     console.log(updatedData);
+//     const productFields = {
+//       productTitle: updatedData.productTitle,
+//       productName: updatedData.productName,
+//       description: updatedData.description,
+//       category: updatedData.category,
+//       subcategory: updatedData.subcategory,
+//       province: updatedData.province,
+//       district: updatedData.district,
+//       neighbourhood: updatedData.neighbourhood,
+//     };
 
-      // Update specific fields in the relevant table
-      await sequelize.models[subcategory.toLowerCase()].update(
-        { ...updatedData, imageId: imgCreate.id }, // Update the relevant fields
-        { where: { productId }, transaction: t }
-      );
-    });
+//     // Update product fields
+//     await product.update(productFields);
 
-    console.log("Product information and images updated successfully");
-    res
-      .status(200)
-      .json({ message: "Product information and images updated successfully" });
-  } catch (error) {
-    console.error(
-      "An error occurred while updating product information:",
-      error.message
-    );
-    res
-      .status(500)
-      .json({ error: "An error occurred while updating product information" });
-  }
-};
+//     // Check if new images are uploaded
+//     if (newImages && newImages.length > 0) {
+//       // Update Images table and move images to the 'images/' folder
+//       const imageId = product.imageId;
+//       const image = await Images.findByPk(imageId);
+
+//       if (image) {
+//         // Remove old images
+//         await fs.unlink(
+//           path.join(
+//             "images",
+//             image.img1,
+//             image.img2,
+//             image.img3,
+//             image.img4,
+//             image.img5
+//           )
+//         );
+
+//         // Update the Images table with new image names
+//         const newImageNames = newImages
+//           .map((filename, index) => `img${index + 1}:${filename}`)
+//           .reduce((acc, val) => ({ ...acc, ...val }), {});
+//         await image.update(newImageNames);
+
+//         // Move new images to the 'images/' folder
+//         await Promise.all(
+//           newImages.map(async (filename) => {
+//             const oldPath = path.join("images", filename);
+//             const newPath = path.join("images", filename); // Update accordingly if you want to change the filename
+//             await fs.rename(oldPath, newPath);
+//           })
+//         );
+//       }
+//     }
+
+//     // Update specific fields in subcategory table
+//     let specificFields;
+//     switch (updatedData.subcategory.toLowerCase()) {
+//       case "car":
+//         specificFields = {
+//           brand: updatedData.brand,
+//           series: updatedData.series,
+//           color: updatedData.color,
+//           gear: updatedData.gear,
+//           price: updatedData.price,
+//         };
+//         break;
+//       case "motorcycle":
+//         specificFields = {
+//           brand: updatedData.brand,
+//           series: updatedData.series,
+//           color: updatedData.color,
+//           gear: updatedData.gear,
+//           price: updatedData.price,
+//         };
+//         break;
+//       case "home":
+//         specificFields = {
+//           squareMeters: updatedData.squareMeters,
+//           room: updatedData.room,
+//           propertyType: updatedData.propertyType,
+//           price: updatedData.price,
+//         };
+//         break;
+//       case "land":
+//         specificFields = {
+//           propertyType: updatedData.propertyType,
+//           squareMeters: updatedData.squareMeters,
+//           price: updatedData.price,
+//         };
+//         break;
+//       case "computer":
+//         specificFields = {
+//           brand: updatedData.brand,
+//           model: updatedData.model,
+//           ram: updatedData.ram,
+//           gpu: updatedData.gpu,
+//           processor: updatedData.processor,
+//           memory: updatedData.memory,
+//           price: updatedData.price,
+//         };
+//         break;
+//       case "phone":
+//         specificFields = {
+//           brand: updatedData.brand,
+//           model: updatedData.model,
+//           color: updatedData.color,
+//           ram: updatedData.ram,
+//           processor: updatedData.processor,
+//           memory: updatedData.memory,
+//           price: updatedData.price,
+//         };
+//         break;
+//       default:
+//         specificFields = {};
+//         break;
+//     }
+
+//     await sequelize.models[product.subcategory.toLowerCase()].update(
+//       { ...specificFields, imageId: image.id },
+//       { where: { productId } }
+//     );
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Product information and images updated successfully",
+//     });
+//   } catch (error) {
+//     console.error(
+//       "An error occurred while updating product information:",
+//       error.message
+//     );
+//     return res.status(500).json({
+//       success: false,
+//       error: "An error occurred while updating product information",
+//     });
+//   }
+// };
 
 //! DELETE PRODUCT OPERATIONS
 
@@ -598,6 +682,76 @@ const deleteProduct = async (req, res) => {
   }
 };
 
+//! FAVORITE PRODUCT OPERATIONS
+
+const addFavorite = async (req, res) => {
+  try {
+    // Token validation
+    let token = req.headers.authorization;
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: "Authorization failed. Token not found.",
+      });
+    }
+
+    // Verify the token
+    token = token.split(" ")[1];
+    const decodedToken = jwt.verify(token, "jwtSecretKey123456789");
+    const userId = decodedToken.userId;
+
+    // User validation
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: "Authorization failed. User not found.",
+      });
+    }
+
+    // Get productId from request body
+    const productId = req.params.productId;
+
+    // Check if the product exists
+    const product = await Product.findByPk(productId);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        error: "Product not found",
+      });
+    }
+
+    // Check if the favorite already exists
+    const existingFavorite = await Favorite.findOne({
+      where: { productId, userId },
+    });
+
+    if (existingFavorite) {
+      return res.status(400).json({
+        success: false,
+        error: "Product already in favorites",
+      });
+    }
+
+    // Add the favorite
+    await Favorite.create({ productId, userId });
+
+    return res.status(201).json({
+      success: true,
+      message: "Product added to favorites successfully",
+    });
+  } catch (error) {
+    console.error(
+      "An error occurred while adding to favorites:",
+      error.message
+    );
+    return res.status(500).json({
+      success: false,
+      error: "An error occurred while adding to favorites",
+    });
+  }
+};
+
 // DELETE /products/:productId
 // router.delete("/products/:productId", deleteProduct);
 
@@ -607,5 +761,6 @@ module.exports = {
   upload,
   deleteProduct,
   getAllProducts,
-  updateProductInfo,
+  addFavorite,
+  // updateProductInfo,
 };
