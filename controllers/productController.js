@@ -315,7 +315,7 @@ const getAllProducts = async (req, res) => {
 
     // Her bir ürünün içinde dolaşarak userId'leri toplayın
     allProducts.forEach((product) => {
-      const userId = product.dataValues.userId;
+      const userId = product.userId; // Burayı değiştirin
       userIds.push(userId);
     });
 
@@ -324,22 +324,11 @@ const getAllProducts = async (req, res) => {
       where: { id: { [Op.in]: userIds } },
     });
 
-    const userId = product.dataValues.userId;
-
+    // Burada userId'yi doğru bir şekilde alın
     const favorites = await Favorite.findAll({
-      attributes: ["productId"], // Sadece productId'yi almak istiyorsanız bu satırı ekleyebilirsiniz
-      where: { userId: userId },
+      attributes: ["productId"],
+      where: { userId: userIds },
     });
-
-    // You can format the user information as desired
-    const UserInfo = {
-      id: userInfo.id,
-      username: userInfo.username,
-      email: userInfo.email,
-      phoneNumber: userInfo.phoneNumber,
-      createdAt: userInfo.createdAt,
-      favorites,
-    };
 
     // Varsayılan olarak userIds ve userInfo'nin aynı sıraya sahip olduğunu düşünüyoruz
     const userInfoMap = {};
@@ -349,6 +338,7 @@ const getAllProducts = async (req, res) => {
         username: user.username,
         phoneNumber: user.phoneNumber,
         createdAt: user.createdAt,
+        favorites,
       };
     });
 
@@ -581,8 +571,7 @@ const getAllProducts = async (req, res) => {
 //   }
 // };
 
-//! DELETE PRODUCT OPERATIONS
-
+//! DELETE PRODUCT OPERATIONn
 // Token check
 const deleteProduct = async (req, res) => {
   try {
@@ -633,6 +622,8 @@ const deleteProduct = async (req, res) => {
       });
 
       deletedSubcategory = subcategory.dataValues.subcategory;
+
+      console.log(deletedSubcategory);
 
       await deletedSubcategory.destroy({
         where: { productId: productId },
