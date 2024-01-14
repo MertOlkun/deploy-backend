@@ -110,9 +110,9 @@ async function forgotPassword(req, res) {
         });
       } else {
         console.log("Email sent: " + info.response);
+        res.json({ message: "Login successful", resetToken });
         return res.status(200).json({
           message: `Password reset link has been sent.`,
-          resetToken,
         });
       }
     });
