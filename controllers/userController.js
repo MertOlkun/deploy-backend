@@ -181,7 +181,7 @@ const getUserInfo = async (req, res) => {
     }
 
     const favorites = await Favorite.findAll({
-      attributes: ["productId"], // Sadece productId'yi almak istiyorsanız bu satırı ekleyebilirsiniz
+      attributes: ["productId"],
       where: { userId: userId },
     });
 

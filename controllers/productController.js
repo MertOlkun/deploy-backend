@@ -737,13 +737,16 @@ const addFavorite = async (req, res) => {
     });
 
     if (existingFavorite) {
-      return res.status(400).json({
-        success: false,
-        error: "Product already in favorites",
+      // Ürün favorilerde zaten varsa, favorilerden kaldır
+      await existingFavorite.destroy();
+
+      return res.status(200).json({
+        success: true,
+        message: "Product removed from favorites successfully",
       });
     }
 
-    // Add the favorite
+    // Ürün favorilerde değilse, favorilere ekle
     await Favorite.create({ productId, userId });
 
     return res.status(201).json({
@@ -752,12 +755,12 @@ const addFavorite = async (req, res) => {
     });
   } catch (error) {
     console.error(
-      "An error occurred while adding to favorites:",
+      "An error occurred while adding/removing from favorites:",
       error.message
     );
     return res.status(500).json({
       success: false,
-      error: "An error occurred while adding to favorites",
+      error: "An error occurred while adding/removing from favorites",
     });
   }
 };
