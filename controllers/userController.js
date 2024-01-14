@@ -99,7 +99,7 @@ async function forgotPassword(req, res) {
       from: mailConfig.mail.email,
       to: user.email,
       subject: "Password Reset",
-      text: `To reset your password, click on the link: https://mysql-emporium-deploy1.onrender.com/user/reset-password/${resetToken}`,
+      text: `To reset your password, click on the link: https://www.emporium-web.online/sifremiunuttum/sifre-degistirme/${resetToken}`,
     };
 
     transporter.sendMail(mailOptions, (error, info) => {
