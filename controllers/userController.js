@@ -8,6 +8,7 @@ const Images = require("../models/images");
 const fs = require("fs").promises;
 const path = require("path");
 const { sequelize } = require("../models/index");
+const Favorite = require("../models/favorite");
 
 //! REGISTER OPERATIONS
 async function registerUser(req, res) {
@@ -179,6 +180,11 @@ const getUserInfo = async (req, res) => {
       return null;
     }
 
+    const favorites = await Favorite.findAll({
+      attributes: ["productId"], // Sadece productId'yi almak istiyorsanız bu satırı ekleyebilirsiniz
+      where: { userId: userId },
+    });
+
     // You can format the user information as desired
     const UserInfo = {
       id: userInfo.id,
@@ -186,10 +192,11 @@ const getUserInfo = async (req, res) => {
       email: userInfo.email,
       phoneNumber: userInfo.phoneNumber,
       createdAt: userInfo.createdAt,
+      favorites,
     };
 
     // Send a success message to the client when successfully retrieved
-    res.status(200).json({ UserInfo });
+    res.status(200).json({ userinfo: UserInfo });
   } catch (error) {
     // Send an error message to the client if an error occurs
     console.error(

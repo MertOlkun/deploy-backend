@@ -1,20 +1,12 @@
 // productController.js
 const express = require("express");
-const app = express();
 const { Op } = require("sequelize");
-const Sequelize = require("sequelize");
 const multer = require("multer");
 const jwt = require("jsonwebtoken");
 const fs = require("fs").promises;
 const path = require("path");
 const { sequelize } = require("../models/index");
 const Product = require("../models/product");
-const Car = require("../models/products/car");
-const Computer = require("../models/products/computer");
-const Home = require("../models/products/home");
-const Land = require("../models/products/land");
-const Motorcycle = require("../models/products/motorcycle");
-const Phone = require("../models/products/phone");
 const User = require("../models/user");
 const Images = require("../models/images");
 const Favorite = require("../models/favorite");
@@ -217,6 +209,11 @@ const getUserProduct = async (req, res) => {
       return null;
     }
 
+    const favorites = await Favorite.findAll({
+      attributes: ["productId"], // Sadece productId'yi almak istiyorsanız bu satırı ekleyebilirsiniz
+      where: { userId: userId },
+    });
+
     // You can format the user information as desired
     const UserInfo = {
       id: userInfo.id,
@@ -224,6 +221,7 @@ const getUserProduct = async (req, res) => {
       email: userInfo.email,
       phoneNumber: userInfo.phoneNumber,
       createdAt: userInfo.createdAt,
+      favorites,
     };
 
     // Extract the product IDs of the user's products into an array
@@ -325,6 +323,23 @@ const getAllProducts = async (req, res) => {
     const userInfo = await User.findAll({
       where: { id: { [Op.in]: userIds } },
     });
+
+    const userId = product.dataValues.userId;
+
+    const favorites = await Favorite.findAll({
+      attributes: ["productId"], // Sadece productId'yi almak istiyorsanız bu satırı ekleyebilirsiniz
+      where: { userId: userId },
+    });
+
+    // You can format the user information as desired
+    const UserInfo = {
+      id: userInfo.id,
+      username: userInfo.username,
+      email: userInfo.email,
+      phoneNumber: userInfo.phoneNumber,
+      createdAt: userInfo.createdAt,
+      favorites,
+    };
 
     // Varsayılan olarak userIds ve userInfo'nin aynı sıraya sahip olduğunu düşünüyoruz
     const userInfoMap = {};
@@ -611,10 +626,15 @@ const deleteProduct = async (req, res) => {
 
       const imageId = deletedProduct ? deletedProduct.imageId : null;
 
-      // Delete product entries from other tables based on the subcategory
-      const subcategory = userProduct.map((product) => product.subcategory);
+      // console.log(subcategory);
+      subcategory = await Product.findOne({
+        where: { id: productId },
+        attributes: ["subcategory"],
+      });
 
-      await sequelize.models[subcategory].destroy({
+      deletedSubcategory = subcategory.dataValues.subcategory;
+
+      await deletedSubcategory.destroy({
         where: { productId: productId },
         transaction: t,
       });
@@ -751,9 +771,6 @@ const addFavorite = async (req, res) => {
     });
   }
 };
-
-// DELETE /products/:productId
-// router.delete("/products/:productId", deleteProduct);
 
 module.exports = {
   createProduct,

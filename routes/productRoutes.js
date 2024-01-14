@@ -17,7 +17,7 @@ router.get("/getUserProduct", productController.getUserProduct);
 
 router.get("/getAllProduct", productController.getAllProducts);
 
-router.get("/favorite/:productId", productController.addFavorite);
+router.post("/favorite/:productId", productController.addFavorite);
 
 // router.put(
 //   "/updateProduct/:productId",
