@@ -111,7 +111,8 @@ async function forgotPassword(req, res) {
       } else {
         console.log("Email sent: " + info.response);
         return res.status(200).json({
-          message: `Password reset link has been sent.${resetToken} `,
+          message: `Password reset link has been sent.`,
+          resetToken,
         });
       }
     });
