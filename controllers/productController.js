@@ -621,11 +621,10 @@ const deleteProduct = async (req, res) => {
         attributes: ["subcategory"],
       });
 
-      deletedSubcategory = subcategory.dataValues.subcategory;
+      const deletedSubcategory = subcategory.dataValues.subcategory;
+      const subcategoryModel = sequelize.models[deletedSubcategory];
 
-      console.log(deletedSubcategory);
-
-      await deletedSubcategory.destroy({
+      await subcategoryModel.destroy({
         where: { productId: productId },
         transaction: t,
       });
