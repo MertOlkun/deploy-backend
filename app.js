@@ -45,7 +45,7 @@ function associate() {
 associate();
 
 // Listen to server
-sequelize.sync({ force: true }).then(() => {
+sequelize.sync().then(() => {
   app.listen(process.env.DEV_DB_PORT || 5000, () => {
     console.log(`Server listening on port ${process.env.DEV_DB_PORT}`);
   });
